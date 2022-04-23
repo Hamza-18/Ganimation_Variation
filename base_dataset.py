@@ -26,6 +26,10 @@ class BaseDataset(torch.utils.data.Dataset):
         self.imgs_name_file = os.path.join(self.opt.data_root, filename)
         self.imgs_path = self.make_dataset()
 
+        # load pose_dict
+        pose_pkl = os.path.join(self.opt.data_root, self.opt.aus_pkl)
+        self.pose_dict = self.load_dict(pose_pkl) 
+
         # load AUs dicitionary 
         aus_pkl = os.path.join(self.opt.data_root, self.opt.aus_pkl)
         self.aus_dict = self.load_dict(aus_pkl)

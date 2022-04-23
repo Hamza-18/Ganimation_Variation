@@ -17,7 +17,7 @@ def get_data(filepaths):
     data = dict()
     for filepath in tqdm(filepaths):
         content = np.loadtxt(filepath, delimiter=',', skiprows=1)
-        data[os.path.basename(filepath[:-4])] = content[2:19] # verify this by using the au column
+        data[os.path.basename(filepath[:-4])] = content[2:7] # verify this by using the au column
     return data
 
 def save_dict(data, name):
