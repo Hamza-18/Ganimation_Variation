@@ -65,13 +65,34 @@ class GANimationModel(BaseModel):
 
     # feed forward the fake image to change the pose
     def forward_pose(self):
-        self.color_mask, self.aus_mask, self.embed = self.net_gen_pose(self.fake_img, self.tar_pose)
-        self.fake_img = self.aus_mask * self.src_img + (1 - self.aus_mask) * self.color_mask
+        self.color_mask_pose, self.aus_mask_pose, self.embed_pose = self.net_gen_pose(self.fake_img, self.tar_pose)
+        self.fake_img_pose = self.aus_mask_pose * self.src_img_pose + (1 - self.aus_mask_pose) * self.color_mask_pose
 
         # identity loss
         if self.is_train:
-            self.rec_color_mask, self.rec_aus_mask, self.rec_embed = self.net_gen(self.fake_img, self.src_pose)
-            self.rec_real_img = self.rec_aus_mask * self.fake_img + (1 - self.rec_aus_mask) * self.rec_color_mask
+            self.rec_color_mask_pose, self.rec_aus_mask_pose, self.rec_embed_pose = self.net_gen_pose(self.fake_img, self.src_pose)
+            self.rec_real_img_pose = self.rec_aus_mask_pose * self.fake_img_pose + (1 - self.rec_aus_mask_pose) * self.rec_color_mask_pose
+
+
+    def backward_dis_pose(self):
+        # real image
+        pred_real_pose, self.pred_real_aus_pose = self.net_dis_pose(self.src_img)
+        self.loss_dis_real_pose = self.criterionGAN(pred_real_pose, True)
+        self.loss_dis_real_aus_pose = self.criterionMSE(self.pred_real_aus, self.src_pose)
+
+        # fake image, detach to stop backward to generator
+        pred_fake_pose, _ = self.net_dis_pose(self.fake_img.detach()) 
+        self.loss_dis_fake_pose = self.criterionGAN(pred_fake_pose, False)
+
+        # combine dis loss
+        self.loss_dis_pose =   self.opt.lambda_dis * (self.loss_dis_fake_pose + self.loss_dis_real_pose) \
+                        + self.opt.lambda_aus_pose * self.loss_dis_real_aus_pose
+        if self.opt.gan_type == 'wgan-gp':
+            self.loss_dis_gp_pose = self.gradient_penalty(self.src_img, self.fake_img)
+            self.loss_dis_pose = self.loss_dis_pose + self.opt.lambda_wgan_gp * self.loss_dis_gp_pose
+        
+        # backward discriminator loss
+        self.loss_dis.backward()
 
     def backward_dis(self):
         # real image
@@ -92,6 +113,30 @@ class GANimationModel(BaseModel):
         
         # backward discriminator loss
         self.loss_dis.backward()
+
+    def backward_gen_pose(self):
+        # original to target domain, should fake the discriminator
+        pred_fake_pose, self.pred_fake_aus_pose = self.net_dis_pose(self.fake_img_pose)
+        self.loss_gen_GAN_pose = self.criterionGAN(pred_fake_pose, True)
+        self.loss_gen_fake_aus_pose = self.criterionMSE(self.pred_fake_aus_pose, self.tar_pose)
+
+        # target to original domain reconstruct, identity loss
+        self.loss_gen_rec_pose = self.criterionL1(self.rec_real_img_pose, self.fake_img_pose)
+
+        # constrain on AUs mask
+        self.loss_gen_mask_real_aus_pose = torch.mean(self.aus_mask_pose)
+        self.loss_gen_mask_fake_aus_pose = torch.mean(self.rec_aus_mask_pose)
+        self.loss_gen_smooth_real_aus_pose = self.criterionTV(self.aus_mask_pose)
+        self.loss_gen_smooth_fake_aus_pose = self.criterionTV(self.rec_aus_mask_pose)
+
+        # combine and backward G loss
+        self.loss_gen_pose =   self.opt.lambda_dis * self.loss_gen_GAN_pose \
+                        + self.opt.lambda_aus * self.loss_gen_fake_aus_pose \
+                        + self.opt.lambda_rec * self.loss_gen_rec_pose \
+                        + self.opt.lambda_mask * (self.loss_gen_mask_real_aus_pose + self.loss_gen_mask_fake_aus_pose) \
+                        + self.opt.lambda_tv * (self.loss_gen_smooth_real_aus_pose + self.loss_gen_smooth_fake_aus_pose)
+
+        self.loss_gen.backward()
 
     def backward_gen(self):
         # original to target domain, should fake the discriminator
