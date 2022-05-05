@@ -15,11 +15,17 @@ class GANimationModel(BaseModel):
         self.net_gen = model_utils.define_splitG(self.opt.img_nc, self.opt.aus_nc, self.opt.ngf, use_dropout=self.opt.use_dropout, 
                     norm=self.opt.norm, init_type=self.opt.init_type, init_gain=self.opt.init_gain, gpu_ids=self.gpu_ids)
         self.models_name.append('gen')
+        self.net_gen_pose = model_utils.define_splitG(self.opt.img_nc, self.opt.pose_nc, self.opt.ngf, use_dropout=self.opt.use_dropout, 
+                    norm=self.opt.norm, init_type=self.opt.init_type, init_gain=self.opt.init_gain, gpu_ids=self.gpu_ids)
+        self.models_name.append('gen_pose')
         
         if self.is_train:
             self.net_dis = model_utils.define_splitD(self.opt.img_nc, self.opt.aus_nc, self.opt.final_size, self.opt.ndf, 
                     norm=self.opt.norm, init_type=self.opt.init_type, init_gain=self.opt.init_gain, gpu_ids=self.gpu_ids)
             self.models_name.append('dis')
+            self.net_dis_pose = model_utils.define_splitD(self.opt.img_nc, self.opt.pose_nc, self.opt.final_size, self.opt.ndf, 
+                    norm=self.opt.norm, init_type=self.opt.init_type, init_gain=self.opt.init_gain, gpu_ids=self.gpu_ids)
+            self.models_name.append('dis_pose')
 
         if self.opt.load_epoch > 0:
             self.load_ckpt(self.opt.load_epoch)
@@ -41,8 +47,10 @@ class GANimationModel(BaseModel):
     def feed_batch(self, batch):
         self.src_img = batch['src_img'].to(self.device)
         self.tar_aus = batch['tar_aus'].type(torch.FloatTensor).to(self.device)
+        self.tar_pose = batch['tar_pose'].type(torch.FloatTensor).to(self.device)
         if self.is_train:
             self.src_aus = batch['src_aus'].type(torch.FloatTensor).to(self.device)
+            self.src_pose = batch['src_pose'].type(torch.FloatTensor).to(self.device)
             self.tar_img = batch['tar_img'].to(self.device)
 
     def forward(self):
@@ -53,6 +61,16 @@ class GANimationModel(BaseModel):
         # reconstruct real image
         if self.is_train:
             self.rec_color_mask, self.rec_aus_mask, self.rec_embed = self.net_gen(self.fake_img, self.src_aus)
+            self.rec_real_img = self.rec_aus_mask * self.fake_img + (1 - self.rec_aus_mask) * self.rec_color_mask
+
+    # feed forward the fake image to change the pose
+    def forward_pose(self):
+        self.color_mask, self.aus_mask, self.embed = self.net_gen_pose(self.fake_img, self.tar_pose)
+        self.fake_img = self.aus_mask * self.src_img + (1 - self.aus_mask) * self.color_mask
+
+        # identity loss
+        if self.is_train:
+            self.rec_color_mask, self.rec_aus_mask, self.rec_embed = self.net_gen(self.fake_img, self.src_pose)
             self.rec_real_img = self.rec_aus_mask * self.fake_img + (1 - self.rec_aus_mask) * self.rec_color_mask
 
     def backward_dis(self):
