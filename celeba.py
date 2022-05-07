@@ -49,6 +49,7 @@ class CelebADataset(BaseDataset):
         tar_pose = self.get_pose_by_path(tar_img_path)
         if self.is_train and not self.opt.no_aus_noise:
             tar_aus = tar_aus + np.random.uniform(-0.1, 0.1, tar_aus.shape)
+            tar_pose = tar_pose + np.random.uniform(-0.1, 0.1, tar_pose.shape)
 
         # record paths for debug and test usage
         data_dict = {'src_img':src_img_tensor, 'src_aus':src_aus,'src_pose':src_pose, 'tar_img':tar_img_tensor, 'tar_aus':tar_aus, \
