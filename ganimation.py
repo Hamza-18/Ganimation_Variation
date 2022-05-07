@@ -177,7 +177,7 @@ class GANimationModel(BaseModel):
 
         # update G if needed
         if train_gen:
-            self.set_requires_grad([self.net_gen,self.net_gen_pose], False)
+            self.set_requires_grad([self.net_dis,self.net_dis_pose], False)
             self.optim_gen.zero_grad()
             self.backward_gen()
             self.backward_gen_pose()

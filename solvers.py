@@ -125,7 +125,7 @@ class Solver(object):
                     self.test_model.feed_batch(test_batch)
                     self.test_model.forward()
 
-                    cur_gen_faces = self.test_model.fake_img.cpu().float().numpy()
+                    cur_gen_faces = self.test_model.fake_img_pose.cpu().float().numpy()
                     faces_list.append(cur_gen_faces)
                 faces_list.append(batch['tar_img'].float().numpy())
             self.test_save_imgs(faces_list, paths_list)
