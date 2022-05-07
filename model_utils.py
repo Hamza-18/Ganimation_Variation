@@ -431,7 +431,7 @@ class SplitGenerator(nn.Module):
         model = [nn.Conv2d(self.input_nc, ngf, kernel_size=7, stride=1, padding=3, 
                            bias=use_bias),
                  norm_layer(ngf),
-                 nn.ReLU(True)]
+                 nn.ReLU(False)]
 
         n_downsampling = 2
         for i in range(n_downsampling):
@@ -440,7 +440,7 @@ class SplitGenerator(nn.Module):
                                 kernel_size=4, stride=2, padding=1, \
                                 bias=use_bias),
                       norm_layer(ngf * mult * 2),
-                      nn.ReLU(True)]
+                      nn.ReLU(False)]
 
         mult = 2**n_downsampling
         for i in range(n_blocks):
@@ -452,7 +452,7 @@ class SplitGenerator(nn.Module):
                                          kernel_size=4, stride=2, padding=1,
                                          bias=use_bias),
                       norm_layer(int(ngf * mult / 2)),
-                      nn.ReLU(True)]
+                      nn.ReLU(False)]
 
         self.model = nn.Sequential(*model)
         # color mask generator top
@@ -495,7 +495,7 @@ class SplitDiscriminator(nn.Module):
         padw = 1
         sequence = [
             nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
-            nn.LeakyReLU(0.01, True)
+            nn.LeakyReLU(0.01, False)
         ]
 
         cur_dim = ndf
@@ -503,7 +503,7 @@ class SplitDiscriminator(nn.Module):
             sequence += [
                 nn.Conv2d(cur_dim, 2 * cur_dim,
                           kernel_size=kw, stride=2, padding=padw, bias=use_bias),
-                nn.LeakyReLU(0.01, True)
+                nn.LeakyReLU(0.01, False)
             ]
             cur_dim = 2 * cur_dim
 

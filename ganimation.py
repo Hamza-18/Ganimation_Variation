@@ -74,7 +74,7 @@ class GANimationModel(BaseModel):
         # identity loss
         if self.is_train:
             self.rec_color_mask_pose, self.rec_aus_mask_pose, self.rec_embed_pose = self.net_gen_pose(self.fake_img, self.src_pose)
-            self.rec_real_img_pose = self.rec_aus_mask_pose * self.fake_img + (1 - self.rec_aus_mask_pose) * self.rec_color_mask_pose
+            self.rec_real_img_pose = self.rec_aus_mask_pose * self.fake_img_pose + (1 - self.rec_aus_mask_pose) * self.rec_color_mask_pose
 
 
     def backward_dis_pose(self):
@@ -95,7 +95,7 @@ class GANimationModel(BaseModel):
             self.loss_dis_pose = self.loss_dis_pose + self.opt.lambda_wgan_gp * self.loss_dis_gp_pose
         
         # backward discriminator loss
-        self.loss_dis_pose.backward()
+        self.loss_dis_pose.backward(retain_graph=True)
 
     def backward_dis(self):
         # real image
@@ -115,7 +115,7 @@ class GANimationModel(BaseModel):
             self.loss_dis = self.loss_dis + self.opt.lambda_wgan_gp * self.loss_dis_gp
         
         # backward discriminator loss
-        self.loss_dis.backward()
+        self.loss_dis.backward(retain_graph=True)
 
     def backward_gen_pose(self):
         # original to target domain, should fake the discriminator
@@ -139,7 +139,7 @@ class GANimationModel(BaseModel):
                         + self.opt.lambda_mask * (self.loss_gen_mask_real_aus_pose + self.loss_gen_mask_fake_aus_pose) \
                         + self.opt.lambda_tv * (self.loss_gen_smooth_real_aus_pose + self.loss_gen_smooth_fake_aus_pose)
 
-        self.loss_gen_pose.backward()
+        self.loss_gen_pose.backward(retain_graph=True)
 
     def backward_gen(self):
         # original to target domain, should fake the discriminator
@@ -163,7 +163,7 @@ class GANimationModel(BaseModel):
                         + self.opt.lambda_mask * (self.loss_gen_mask_real_aus + self.loss_gen_mask_fake_aus) \
                         + self.opt.lambda_tv * (self.loss_gen_smooth_real_aus + self.loss_gen_smooth_fake_aus)
 
-        self.loss_gen.backward()
+        self.loss_gen.backward(retain_graph=True)
 
     def optimize_paras(self, train_gen):
         self.forward()
