@@ -1,3 +1,4 @@
+import itertools
 import torch
 from base_model import BaseModel
 import model_utils
@@ -34,11 +35,13 @@ class GANimationModel(BaseModel):
         super(GANimationModel, self).setup()
         if self.is_train:
             # setup optimizer
-            self.optim_gen = torch.optim.Adam(self.net_gen.parameters(),
+            self.optim_gen = torch.optim.Adam(itertools.chain(self.net_gen.parameters(), self.net_gen_pose.parameters()),
                             lr=self.opt.lr, betas=(self.opt.beta1, 0.999))
             self.optims.append(self.optim_gen)
-            self.optim_dis = torch.optim.Adam(self.net_dis.parameters(), 
+            
+            self.optim_dis = torch.optim.Adam(itertools.chain(self.net_dis.parameters(), self.net_dis_pose.parameters()), 
                             lr=self.opt.lr, betas=(self.opt.beta1, 0.999))
+            
             self.optims.append(self.optim_dis)
 
             # setup schedulers
@@ -92,7 +95,7 @@ class GANimationModel(BaseModel):
             self.loss_dis_pose = self.loss_dis_pose + self.opt.lambda_wgan_gp * self.loss_dis_gp_pose
         
         # backward discriminator loss
-        self.loss_dis.backward()
+        self.loss_dis_pose.backward()
 
     def backward_dis(self):
         # real image
@@ -136,7 +139,7 @@ class GANimationModel(BaseModel):
                         + self.opt.lambda_mask * (self.loss_gen_mask_real_aus_pose + self.loss_gen_mask_fake_aus_pose) \
                         + self.opt.lambda_tv * (self.loss_gen_smooth_real_aus_pose + self.loss_gen_smooth_fake_aus_pose)
 
-        self.loss_gen.backward()
+        self.loss_gen_pose.backward()
 
     def backward_gen(self):
         # original to target domain, should fake the discriminator
@@ -164,22 +167,25 @@ class GANimationModel(BaseModel):
 
     def optimize_paras(self, train_gen):
         self.forward()
+        self.forward_pose()
         # update discriminator
-        self.set_requires_grad(self.net_dis, True)
+        self.set_requires_grad([self.net_dis, self.net_dis_pose], True)
         self.optim_dis.zero_grad()
         self.backward_dis()
+        self.backward_dis_pose()
         self.optim_dis.step()
 
         # update G if needed
         if train_gen:
-            self.set_requires_grad(self.net_dis, False)
+            self.set_requires_grad([self.net_gen,self.net_gen_pose], False)
             self.optim_gen.zero_grad()
             self.backward_gen()
+            self.backward_gen_pose()
             self.optim_gen.step()
 
     def save_ckpt(self, epoch):
         # save the specific networks
-        save_models_name = ['gen', 'dis']
+        save_models_name = ['gen','gen_pose', 'dis', 'dis_pose']
         return super(GANimationModel, self).save_ckpt(epoch, save_models_name)
 
     def load_ckpt(self, epoch):
