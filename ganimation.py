@@ -35,11 +35,11 @@ class GANimationModel(BaseModel):
         super(GANimationModel, self).setup()
         if self.is_train:
             # setup optimizer
-            self.optim_gen = torch.optim.Adam(itertools.chain(self.net_gen.parameters(), self.net_gen_pose.parameters()),
+            self.optim_gen = torch.optim.Adam(self.net_gen_pose.parameters(),
                             lr=self.opt.lr, betas=(self.opt.beta1, 0.999))
             self.optims.append(self.optim_gen)
             
-            self.optim_dis = torch.optim.Adam(itertools.chain(self.net_dis.parameters(), self.net_dis_pose.parameters()), 
+            self.optim_dis = torch.optim.Adam(self.net_dis_pose.parameters(), 
                             lr=self.opt.lr, betas=(self.opt.beta1, 0.999))
             
             self.optims.append(self.optim_dis)
@@ -68,18 +68,18 @@ class GANimationModel(BaseModel):
 
     # feed forward the fake image to change the pose
     def forward_pose(self):
-        self.color_mask_pose, self.aus_mask_pose, self.embed_pose = self.net_gen_pose(self.fake_img, self.tar_pose)
+        self.color_mask_pose, self.aus_mask_pose, self.embed_pose = self.net_gen_pose(self.src_img, self.tar_pose)
         self.fake_img_pose = self.aus_mask_pose * self.fake_img + (1 - self.aus_mask_pose) * self.color_mask_pose
 
         # identity loss
         if self.is_train:
-            self.rec_color_mask_pose, self.rec_aus_mask_pose, self.rec_embed_pose = self.net_gen_pose(self.fake_img, self.src_pose)
+            self.rec_color_mask_pose, self.rec_aus_mask_pose, self.rec_embed_pose = self.net_gen_pose(self.src_img, self.src_pose)
             self.rec_real_img_pose = self.rec_aus_mask_pose * self.fake_img_pose + (1 - self.rec_aus_mask_pose) * self.rec_color_mask_pose
 
 
     def backward_dis_pose(self):
         # real image
-        pred_real_pose, self.pred_real_aus_pose = self.net_dis_pose(self.fake_img)
+        pred_real_pose, self.pred_real_aus_pose = self.net_dis_pose(self.src_img)
         self.loss_dis_real_pose = self.criterionGAN(pred_real_pose, True)
         self.loss_dis_real_aus_pose = self.criterionMSE(self.pred_real_aus, self.src_pose)
 
@@ -91,7 +91,7 @@ class GANimationModel(BaseModel):
         self.loss_dis_pose =   self.opt.lambda_dis * (self.loss_dis_fake_pose + self.loss_dis_real_pose) \
                         + self.opt.lambda_aus * self.loss_dis_real_aus_pose
         if self.opt.gan_type == 'wgan-gp':
-            self.loss_dis_gp_pose = self.gradient_penalty(self.src_img, self.fake_img)
+            self.loss_dis_gp_pose = self.gradient_penalty(self.src_img, self.fake_img_pose)
             self.loss_dis_pose = self.loss_dis_pose + self.opt.lambda_wgan_gp * self.loss_dis_gp_pose
         
         # backward discriminator loss
@@ -166,42 +166,42 @@ class GANimationModel(BaseModel):
         self.loss_gen.backward(retain_graph=True)
 
     def optimize_paras(self, train_gen):
-        self.forward()
+        # self.forward()
         self.forward_pose()
         # update discriminator
-        self.set_requires_grad([self.net_dis, self.net_dis_pose], True)
+        self.set_requires_grad(self.net_dis_pose, True)
         self.optim_dis.zero_grad()
-        self.backward_dis()
+        # self.backward_dis()
         self.backward_dis_pose()
         self.optim_dis.step()
 
         # update G if needed
         if train_gen:
-            self.set_requires_grad([self.net_dis,self.net_dis_pose], False)
+            self.set_requires_grad(self.net_dis_pose, False)
             self.optim_gen.zero_grad()
-            self.backward_gen()
+            # self.backward_gen()
             self.backward_gen_pose()
             self.optim_gen.step()
 
     def save_ckpt(self, epoch):
         # save the specific networks
-        save_models_name = ['gen','gen_pose', 'dis', 'dis_pose']
+        save_models_name = ['gen_pose', 'dis_pose']
         return super(GANimationModel, self).save_ckpt(epoch, save_models_name)
 
     def load_ckpt(self, epoch):
         # load the specific part of networks
-        load_models_name = ['gen','gen_pose']
+        load_models_name = ['gen_pose']
         if self.is_train:
-            load_models_name.extend(['dis'])
+            load_models_name.extend(['dis_pose'])
         return super(GANimationModel, self).load_ckpt(epoch, load_models_name)
 
     def clean_ckpt(self, epoch):
         # load the specific part of networks
-        load_models_name = ['gen', 'dis']
+        load_models_name = ['gen_pose', 'dis_pose']
         return super(GANimationModel, self).clean_ckpt(epoch, load_models_name)
 
     def get_latest_losses(self):
-        get_losses_name = ['dis_fake', 'dis_real', 'dis_real_aus', 'gen_rec']
+        get_losses_name = ['dis_fake_pose', 'dis_real_pose', 'dis_real_aus_pose', 'gen_rec_pose']
         return super(GANimationModel, self).get_latest_losses(get_losses_name)
 
     def get_latest_visuals(self):
