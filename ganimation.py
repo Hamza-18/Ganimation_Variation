@@ -190,7 +190,7 @@ class GANimationModel(BaseModel):
 
     def load_ckpt(self, epoch):
         # load the specific part of networks
-        load_models_name = ['gen']
+        load_models_name = ['gen','gen_pose']
         if self.is_train:
             load_models_name.extend(['dis'])
         return super(GANimationModel, self).load_ckpt(epoch, load_models_name)
