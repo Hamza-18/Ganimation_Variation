@@ -69,7 +69,7 @@ class GANimationModel(BaseModel):
     # feed forward the fake image to change the pose
     def forward_pose(self):
         self.color_mask_pose, self.aus_mask_pose, self.embed_pose = self.net_gen_pose(self.src_img, self.tar_pose)
-        self.fake_img_pose = self.aus_mask_pose * self.fake_img + (1 - self.aus_mask_pose) * self.color_mask_pose
+        self.fake_img_pose = self.aus_mask_pose * self.src_img + (1 - self.aus_mask_pose) * self.color_mask_pose
 
         # identity loss
         if self.is_train:
