@@ -118,12 +118,14 @@ class Solver(object):
                 for idx in range(self.opt.interpolate_len):
                     cur_alpha = (idx + 1.) / float(self.opt.interpolate_len)
                     cur_tar_aus = cur_alpha * batch['tar_aus'] + (1 - cur_alpha) * batch['src_aus']
+                    cur_tar_pose = cur_alpha * batch['tar_pose'] + (1 - cur_alpha) * batch['src_pose']
                     # print(batch['src_aus'])
                     # print(cur_tar_aus)
-                    test_batch = {'src_img': batch['src_img'], 'tar_aus': cur_tar_aus, 'src_aus':batch['src_aus'], 'tar_img':batch['tar_img']}
+                    test_batch = {'src_img': batch['src_img'], 'tar_aus': cur_tar_aus, 'src_aus':batch['src_aus'], 'tar_img':batch['tar_img'], 'tar_pose':cur_tar_pose}
 
                     self.test_model.feed_batch(test_batch)
                     self.test_model.forward()
+                    self.test_model.forward_pose()
 
                     cur_gen_faces = self.test_model.fake_img_pose.cpu().float().numpy()
                     faces_list.append(cur_gen_faces)

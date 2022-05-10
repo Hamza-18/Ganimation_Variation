@@ -56,7 +56,7 @@ class Options(object):
         # train options 
         parser.add_argument('--img_nc', type=int, default=3, help='image number of channel')
         parser.add_argument('--aus_nc', type=int, default=17, help='aus number of channel')
-        parser.add_argument('--pose_nc', type=int, default=5, help='pose number of channel')
+        parser.add_argument('--pose_nc', type=int, default=17, help='pose number of channel')
         parser.add_argument('--ngf', type=int, default=64, help='ngf')
         parser.add_argument('--ndf', type=int, default=64, help='ndf')
         parser.add_argument('--use_dropout', action='store_true', help='if specified, use dropout.')
