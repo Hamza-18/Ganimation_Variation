@@ -8,12 +8,17 @@ imgDir = "/home/student/Documents/FYP3164/Hamza/ganimation_variation/celebA/imgs
 
 def extractPose(filename):
     
-    os.system(f"./FaceLandmarkImg -f {imgDir}/{filename} -out_dir {outputDir} -pose")
+    os.system(f"./FaceLandmarkImg -f {imgDir}/{filename} -out_dir {outputDir}/pose -pose")
+
+def extractAus(filename):
+    
+    os.system(f"./FaceLandmarkImg -f {imgDir}/{filename} -out_dir {outputDir}/aus -aus")
 
 def main():
     os.chdir(faceLandmarkDir)
     for file in tqdm(os.listdir(imgDir)):
         extractPose(file)
+        extractAus(file)
 
     
 
