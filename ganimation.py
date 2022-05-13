@@ -66,6 +66,10 @@ class GANimationModel(BaseModel):
             self.rec_color_mask, self.rec_aus_mask, self.rec_embed = self.net_gen(self.fake_img, self.src_aus)
             self.rec_real_img = self.rec_aus_mask * self.fake_img + (1 - self.rec_aus_mask) * self.rec_color_mask
 
+     #------------------------------------    
+    # new method for the generator
+    #------------------------------------
+    
     # feed forward the fake image to change the pose
     def forward_pose(self):
         self.color_mask_pose, self.aus_mask_pose, self.embed_pose = self.net_gen_pose(self.fake_img, self.tar_pose)
@@ -73,9 +77,12 @@ class GANimationModel(BaseModel):
 
         # identity loss
         if self.is_train:
-            self.rec_color_mask_pose, self.rec_aus_mask_pose, self.rec_embed_pose = self.net_gen_pose(self.fake_img, self.src_pose)
+            self.rec_color_mask_pose, self.rec_aus_mask_pose, self.rec_embed_pose = self.net_gen_pose(self.fake_img_pose, self.src_pose)
             self.rec_real_img_pose = self.rec_aus_mask_pose * self.fake_img_pose + (1 - self.rec_aus_mask_pose) * self.rec_color_mask_pose
 
+     #------------------------------------    
+    # new method for the discriminator
+    #------------------------------------
 
     def backward_dis_pose(self):
         # real image
@@ -91,7 +98,7 @@ class GANimationModel(BaseModel):
         self.loss_dis_pose =   self.opt.lambda_dis * (self.loss_dis_fake_pose + self.loss_dis_real_pose) \
                         + self.opt.lambda_aus * self.loss_dis_real_aus_pose
         if self.opt.gan_type == 'wgan-gp':
-            self.loss_dis_gp_pose = self.gradient_penalty(self.src_img, self.fake_img)
+            self.loss_dis_gp_pose = self.gradient_penalty(self.src_img, self.fake_img_pose)
             self.loss_dis_pose = self.loss_dis_pose + self.opt.lambda_wgan_gp * self.loss_dis_gp_pose
         
         # backward discriminator loss
@@ -116,7 +123,9 @@ class GANimationModel(BaseModel):
         
         # backward discriminator loss
         self.loss_dis.backward(retain_graph=True)
-
+    #------------------------------------    
+    # new method for the generator
+    #------------------------------------
     def backward_gen_pose(self):
         # original to target domain, should fake the discriminator
         pred_fake_pose, self.pred_fake_aus_pose = self.net_dis_pose(self.fake_img_pose)
