@@ -1,4 +1,3 @@
-import imghdr
 import os
 from tqdm import tqdm
 
@@ -14,8 +13,29 @@ def extractAus(filename):
     
     os.system(f"./FaceLandmarkImg -f {imgDir}/{filename} -out_dir {outputDir}/aus -aus")
 
+def setGlobals(landmarkDir, outDir, imgdir):
+    global faceLandmarkDir,outputDir, imgDir
+    flag = True
+    if os.path.isdir(landmarkDir):
+        faceLandmarkDir = landmarkDir 
+        os.chdir(faceLandmarkDir)
+    else:
+        flag = False
+    if os.path.isdir(outDir):
+        outputDir = outDir
+    else:
+        os.makedirs(outDir)
+    if os.path.isdir(imgDir):
+        imgDir = imgdir
+    else:
+        os.makedirs(imgDir)
+    return flag
+
+
 def main():
-    os.chdir(faceLandmarkDir)
+    
+    setGlobals( "/home/student/Documents/FYP3164/Hamza/OpenFace-master/build/bin", "/home/student/Documents/FYP3164/Hamza/dataset",  "/home/student/Documents/FYP3164/Hamza/ganimation_variation/celebA/imgs" )
+
     for file in tqdm(os.listdir(imgDir)):
         extractPose(file)
         extractAus(file)
