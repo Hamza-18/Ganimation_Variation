@@ -28,7 +28,7 @@ def setGlobals(landmarkDir, outDir, imgdir):
     if os.path.isdir(imgDir):
         imgDir = imgdir
     else:
-        os.makedirs(imgDir)
+        flag = False
     return flag
 
 
